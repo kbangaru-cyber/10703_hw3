@@ -215,6 +215,7 @@ def run(args):
     # Create agent
     agent = create_agent(args.agent, env_info, args, device)
     agent.use_kl_loss = False 
+    print("_____________ Started _______________")
     agent.exp_16_mode =  "half"
     print(f"Created {args.agent.upper()} agent")
 
