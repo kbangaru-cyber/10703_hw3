@@ -172,14 +172,16 @@ class TD3Agent:
         # ---------------- Problem 2.1.2: TD3 target with policy smoothing ----------------
         ### BEGIN STUDENT SOLUTION - 2.1.2 ###
         with torch.no_grad():
-          next_act = self.actor_tgt(next_obs)
-          noise = (torch.randn_like(next_act) * self.policy_noise).clamp(-self.noise_clip, self.noise_clip)
-          next_act = next_act + noise
-          next_act = torch.max(torch.min(next_act, self.act_high), self.act_low)
-          q1_tgt = self.critic1_tgt(next_obs, next_act)
-          q2_tgt = self.critic2_tgt(next_obs, next_act)
-          min_q_tgt = torch.min(q1_tgt, q2_tgt)
-          target_q = rewards + self.gamma * (1.0 - dones) * min_q_tgt
+            out_tgt = self.actor_tgt(next_obs)
+            next_act = out_tgt.mean if hasattr(out_tgt, "mean") else out_tgt
+            noise = (torch.randn_like(next_act) * self.policy_noise).clamp(-self.noise_clip, self.noise_clip)
+            next_act = next_act + noise
+            next_act = torch.max(torch.min(next_act, self.act_high), self.act_low)
+            q1_tgt = self.critic1_tgt(next_obs, next_act)
+            q2_tgt = self.critic2_tgt(next_obs, next_act)
+            min_q_tgt = torch.min(q1_tgt, q2_tgt)
+            target_q = rewards + self.gamma * (1.0 - dones) * min_q_tgt
+
         ### END STUDENT SOLUTION  -  2.1.2 ###
         
         # ---------------- Problem 2.1.3: Critic update ----------------
@@ -197,11 +199,9 @@ class TD3Agent:
         # ---------------- Problem 2.1.4: Actor update (delayed) ----------------
         ### BEGIN STUDENT SOLUTION - 2.1.4 ###
         if do_actor_update:
-            pi = self.actor(obs)
+            out = self.actor(obs)
+            pi = out.mean if hasattr(out, "mean") else out
             actor_loss = -self.critic1(obs, pi).mean()
-
-            self.actor_opt.zero_grad(set_to_none=True)
-            actor_loss.backward()
             self.actor_opt.step()
 
             self._soft_update(self.actor,   self.actor_tgt)
