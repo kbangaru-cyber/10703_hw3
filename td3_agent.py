@@ -73,18 +73,30 @@ class TD3Agent:
         self.total_steps = 0
         self._update_count = 0
     
+    def _dist_mean(self, out):
+        if hasattr(out, "mean"):
+            m = out.mean
+            return m() if callable(m) else m
+        if hasattr(out, "loc"):
+            return out.loc
+        if isinstance(out, (tuple, list)) and torch.is_tensor(out[0]):
+            return out[0]
+        return out
+
+    
     def act(self, obs):
         """Return action info dict matching PPO's interface"""
+        
         with torch.no_grad():
             obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
             
             # ---------------- Problem 2.2: Exploration noise at action time ----------------
             ### BEGIN STUDENT SOLUTION - 2.2 ###
             out = self.actor(obs_t)
-            mu = out.mean if hasattr(out, "mean") else out
+            mu = self._dist_mean(out)
             noise = torch.randn_like(mu) * self.exploration_noise
             action = mu + noise
-            action = torch.max(torch.min(action, self.act_high), self.act_low)
+            action = torch.clamp(action, self.act_low, self.act_high)
             ### END STUDENT SOLUTION  -  2.2 ###
             
             return {
@@ -173,15 +185,12 @@ class TD3Agent:
         ### BEGIN STUDENT SOLUTION - 2.1.2 ###
         with torch.no_grad():
             out_tgt = self.actor_tgt(next_obs)
-            next_act = out_tgt.mean if hasattr(out_tgt, "mean") else out_tgt
+            next_act = self._dist_mean(out_tgt)
             noise = (torch.randn_like(next_act) * self.policy_noise).clamp(-self.noise_clip, self.noise_clip)
-            next_act = next_act + noise
-            next_act = torch.max(torch.min(next_act, self.act_high), self.act_low)
+            next_act = torch.clamp(next_act + noise, self.act_low, self.act_high)
             q1_tgt = self.critic1_tgt(next_obs, next_act)
             q2_tgt = self.critic2_tgt(next_obs, next_act)
-            min_q_tgt = torch.min(q1_tgt, q2_tgt)
-            target_q = rewards + self.gamma * (1.0 - dones) * min_q_tgt
-
+            target_q = rewards + self.gamma * (1.0 - dones) * torch.min(q1_tgt, q2_tgt)
         ### END STUDENT SOLUTION  -  2.1.2 ###
         
         # ---------------- Problem 2.1.3: Critic update ----------------
@@ -200,7 +209,7 @@ class TD3Agent:
         ### BEGIN STUDENT SOLUTION - 2.1.4 ###
         if do_actor_update:
             out = self.actor(obs)
-            pi = out.mean if hasattr(out, "mean") else out
+            pi = self._dist_mean(out)
             actor_loss = -self.critic1(obs, pi).mean()
             self.actor_opt.step()
 
