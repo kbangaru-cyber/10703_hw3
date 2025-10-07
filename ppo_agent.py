@@ -177,43 +177,48 @@ class PPOAgent:
             print("_____________ half batch _______________")
             curr_batch = self._rollout_buffer.sample(filter={"iteration": [self._policy_iteration]})
             all_batch  = self._rollout_buffer.sample()
+        
             B_curr = curr_batch["obs"].shape[0]
             B_all  = all_batch["obs"].shape[0]
-            mb = self.minibatch_size
-            epochs = self.update_epochs
-
+            if B_curr == 0 or B_all == 0:
+                return {}  # nothing to train on yet
+        
+            # normalize advantages
             curr_adv = curr_batch["advantages"]
             curr_batch["advantages"] = (curr_adv - curr_adv.mean()) / (curr_adv.std() + 1e-8)
             all_adv = all_batch["advantages"]
             all_batch["advantages"] = (all_adv - all_adv.mean()) / (all_adv.std() + 1e-8)
-
-            for i in range(epochs):
-                print(i)
+        
+            mb = self.minibatch_size
+            epochs = self.update_epochs
+            h_target = mb // 2  # desired split, but we’ll clamp it per-iteration
+        
+            for _ in range(epochs):
                 perm_curr = torch.randperm(B_curr, device=self.device)
                 perm_all  = torch.randperm(B_all,  device=self.device)
                 p1 = p2 = 0
+        
                 while p1 < B_curr and p2 < B_all:
-                    h = mb // 2
-                    idx_curr = perm_curr[p1:p1+h];  p1 += h
-                    idx_all  = perm_all[p2:p2+(mb-h)];  p2 += (mb - h)
-
-                    if idx_curr.numel() < h:
-                        perm_curr = torch.randperm(B_curr, device=self.device); p1 = 0
-                        idx_curr = perm_curr[p1:p1+h]; p1 += h
-                    if idx_all.numel() < (mb - h):
-                        perm_all = torch.randperm(B_all, device=self.device); p2 = 0
-                        idx_all = perm_all[p2:p2+(mb - h)]; p2 += (mb - h)
-
-                    minibatch = {}
-                    for key in ["obs","actions","log_probs","advantages","returns"]:
-                        minibatch[key] = torch.cat([curr_batch[key][idx_curr], all_batch[key][idx_all]], dim=0)
-
+                    # choose sizes that actually fit what's left
+                    h_curr = min(h_target, B_curr - p1)
+                    h_all  = min(mb - h_curr, B_all - p2)
+        
+                    # if one side has nothing left, break
+                    if h_curr == 0 or h_all == 0:
+                        break
+        
+                    idx_curr = perm_curr[p1:p1 + h_curr]; p1 += h_curr
+                    idx_all  = perm_all[p2:p2 + h_all];  p2 += h_all
+        
+                    minibatch = {k: torch.cat([curr_batch[k][idx_curr], all_batch[k][idx_all]], dim=0)
+                                 for k in ["obs","actions","log_probs","advantages","returns"]}
+        
                     loss, stats = self._ppo_loss(minibatch)
                     self.optimizer.zero_grad(set_to_none=True)
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
                     self.optimizer.step()
-
+        
                     all_stats.append(stats)
 
           ### EXPERIMENT 1.6 CODE END ###
