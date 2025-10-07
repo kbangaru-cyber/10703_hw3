@@ -108,7 +108,7 @@ class TD3Agent:
         raise TypeError(f"Actor output type {type(out)} could not be converted to a Tensor.")
 
     
-   def act(self, obs):
+    def act(self, obs):
         """Return action info dict matching PPO's interface"""
         
         with torch.no_grad():
