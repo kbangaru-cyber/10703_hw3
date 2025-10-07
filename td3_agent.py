@@ -77,11 +77,11 @@ class TD3Agent:
         """Return action info dict matching PPO's interface"""
         with torch.no_grad():
             obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
-            action = 0 # Placeholder
             
             # ---------------- Problem 2.2: Exploration noise at action time ----------------
             ### BEGIN STUDENT SOLUTION - 2.2 ###
-            mu = self.actor(obs_t)
+            out = self.actor(obs_t)
+            mu = out.mean if hasattr(out, "mean") else out
             noise = torch.randn_like(mu) * self.exploration_noise
             action = mu + noise
             action = torch.max(torch.min(action, self.act_high), self.act_low)
