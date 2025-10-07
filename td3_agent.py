@@ -211,6 +211,7 @@ class TD3Agent:
             q2_tgt = self.critic2_tgt(next_obs, next_act).view(-1, 1)
             min_q = torch.min(q1_tgt, q2_tgt)
             target_q = rewards + self.gamma * (1.0 - dones) * min_q
+            target_q = target_q.view(-1, 1)
 
         ### END STUDENT SOLUTION  -  2.1.2 ###
         
