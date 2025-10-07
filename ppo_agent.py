@@ -174,6 +174,7 @@ class PPOAgent:
                         all_stats.append(stats)
 
         elif mode == "half":
+            print("_____________ half batch _______________")
             curr_batch = self._rollout_buffer.sample(filter={"iteration": [self._policy_iteration]})
             all_batch  = self._rollout_buffer.sample()
             B_curr = curr_batch["obs"].shape[0]
