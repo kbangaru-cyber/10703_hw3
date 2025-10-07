@@ -221,6 +221,8 @@ class TD3Agent:
 
         critic1_loss = nn.functional.mse_loss(current_q1, target_q)
         critic2_loss = nn.functional.mse_loss(current_q2, target_q)
+        print(critic1_loss.shape)
+        print(critic2_loss.ahape)
         critic_loss = critic1_loss + critic2_loss
         self.critic_opt.zero_grad(set_to_none=True)
         critic_loss.backward()
