@@ -193,17 +193,12 @@ class TD3Agent:
             return {}
     
     def _td3_update_step(self, batch, do_actor_update: bool) -> Dict[str, float]:
-        """Single TD3 update step"""
-        obs = batch["obs"]
-        actions = batch["actions"]
-        rewards = batch["rewards"]
-        next_obs = batch["next_obs"]
-        dones = batch["dones"]
         
-        current_q1 = torch.zeros_like((actions.shape[0],)) # placeholder
-        current_q2 = torch.zeros_like((actions.shape[0],)) # placeholder
-        target_q = torch.zeros_like((actions.shape[0],)) # placeholder
-        actor_loss = torch.tensor(0.0) # placeholder
+        obs      = batch["obs"]
+        actions  = batch["actions"]
+        rewards  = batch["rewards"].unsqueeze(-1)  # ensure shape (B,1)
+        next_obs = batch["next_obs"]
+        dones    = batch["dones"].unsqueeze(-1) 
         
         # ---------------- Problem 2.1.2: TD3 target with policy smoothing ----------------
         ### BEGIN STUDENT SOLUTION - 2.1.2 ###
@@ -215,6 +210,16 @@ class TD3Agent:
             q1_tgt = self.critic1_tgt(next_obs, next_act)
             q2_tgt = self.critic2_tgt(next_obs, next_act)
             target_q = rewards + self.gamma * (1.0 - dones) * torch.min(q1_tgt, q2_tgt)
+
+        current_q1 = self.critic1(obs, actions)        
+        current_q2 = self.critic2(obs, actions)
+        critic1_loss = nn.functional.mse_loss(current_q1, target_q)
+        critic2_loss = nn.functional.mse_loss(current_q2, target_q)
+        critic_loss  = critic1_loss + critic2_loss
+    
+        self.critic_opt.zero_grad(set_to_none=True)
+        critic_loss.backward()
+        self.critic_opt.step(
         ### END STUDENT SOLUTION  -  2.1.2 ###
         
         # ---------------- Problem 2.1.3: Critic update ----------------
@@ -233,13 +238,12 @@ class TD3Agent:
         ### BEGIN STUDENT SOLUTION - 2.1.4 ###
         if do_actor_update:
             out = self.actor(obs)
-            pi = self._to_tensor_action(out)
+            pi  = self._to_tensor_action(out)         
             actor_loss = -self.critic1(obs, pi).mean()
-        
-            self.actor_opt.zero_grad(set_to_none=True)   # <-- missing before
+    
+            self.actor_opt.zero_grad(set_to_none=True)
             actor_loss.backward()
             self.actor_opt.step()
-        
             self._soft_update(self.actor,   self.actor_tgt)
             self._soft_update(self.critic1, self.critic1_tgt)
             self._soft_update(self.critic2, self.critic2_tgt)
