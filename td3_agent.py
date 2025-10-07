@@ -203,46 +203,21 @@ class TD3Agent:
         # ---------------- Problem 2.1.2: TD3 target with policy smoothing ----------------
         ### BEGIN STUDENT SOLUTION - 2.1.2 ###
         with torch.no_grad():
-            out_tgt  = self.actor_tgt(next_obs)
             out_tgt = self.actor_tgt(next_obs)
             next_act = self._to_tensor_action(out_tgt)
-            noise    = (torch.randn_like(next_act) * self.policy_noise).clamp(-self.noise_clip, self.noise_clip)
             noise = (torch.randn_like(next_act) * self.policy_noise).clamp(-self.noise_clip, self.noise_clip)
             next_act = torch.clamp(next_act + noise, self.act_low, self.act_high)
-            q1_tgt = self.critic1_tgt(next_obs, next_act) 
-            q1_tgt = self.critic1_tgt(next_obs, next_act)
-            q2_tgt = self.critic2_tgt(next_obs, next_act)
-            if q1_tgt.dim() == 1: q1_tgt = q1_tgt.unsqueeze(-1)
-            if q2_tgt.dim() == 1: q2_tgt = q2_tgt.unsqueeze(-1)
-            min_q  = torch.min(q1_tgt, q2_tgt)
-            if q1_tgt.dim() == 1:
-                q1_tgt = q1_tgt.unsqueeze(-1)
-            if q2_tgt.dim() == 1:
-                q2_tgt = q2_tgt.unsqueeze(-1)
+            q1_tgt = self.critic1_tgt(next_obs, next_act).view(-1, 1)
+            q2_tgt = self.critic2_tgt(next_obs, next_act).view(-1, 1)
             min_q = torch.min(q1_tgt, q2_tgt)
             target_q = rewards + self.gamma * (1.0 - dones) * min_q
 
-        current_q1 = self.critic1(obs, actions)
-        current_q2 = self.critic2(obs, actions)
-        if current_q1.dim() == 1: current_q1 = current_q1.unsqueeze(-1)
-        if current_q2.dim() == 1: current_q2 = current_q2.unsqueeze(-1)
-    
-        critic1_loss = nn.functional.mse_loss(current_q1, target_q)
-        critic2_loss = nn.functional.mse_loss(current_q2, target_q)
-        critic_loss  = critic1_loss + critic2_loss
-        self.critic_opt.zero_grad(set_to_none=True)
-        critic_loss.backward()
-        self.critic_opt.step()
         ### END STUDENT SOLUTION  -  2.1.2 ###
         
         # ---------------- Problem 2.1.3: Critic update ----------------
         ### BEGIN STUDENT SOLUTION - 2.1.3 ###
-        current_q1 = self.critic1(obs, actions)
-        current_q2 = self.critic2(obs, actions)
-        if current_q1.dim() == 1:
-            current_q1 = current_q1.unsqueeze(-1)
-        if current_q2.dim() == 1:
-            current_q2 = current_q2.unsqueeze(-1)
+        current_q1 = self.critic1(obs, actions).view(-1, 1)
+        current_q2 = self.critic2(obs, actions).view(-1, 1)
 
         critic1_loss = nn.functional.mse_loss(current_q1, target_q)
         critic2_loss = nn.functional.mse_loss(current_q2, target_q)
@@ -285,6 +260,5 @@ class TD3Agent:
         # ---------------- Problem 2.1.5: Polyak averaging ----------------
         ### BEGIN STUDENT SOLUTION - 2.1.5 ###
         for tp, lp in zip(target_model.parameters(), local_model.parameters()):
-          tp.data.copy_( self.tau * lp.data + (1.0 - self.tau) * tp.data )  
-            tp.data.copy_(self.tau * lp.data + (1.0 - self.tau) * tp.data)
+          tp.data.copy_(self.tau * lp.data + (1.0 - self.tau) * tp.data)
         ### END STUDENT SOLUTION  -  2.1.5 ###
