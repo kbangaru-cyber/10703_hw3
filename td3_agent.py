@@ -220,6 +220,10 @@ class TD3Agent:
         current_q1 = self.critic1(obs, actions).view(-1, 1)
         current_q2 = self.critic2(obs, actions).view(-1, 1)
 
+        if current_q1.dim() == 1: current_q1 = current_q1.unsqueeze(-1)
+        if current_q2.dim() == 1: current_q2 = current_q2.unsqueeze(-1)
+        if target_q.dim()  == 1: target_q  = target_q.unsqueeze(-1)
+
         print(current_q1.shape)
         print(current_q2.ahape)
         print(target_q.shape)
