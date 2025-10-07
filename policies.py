@@ -187,7 +187,7 @@ class Critic(nn.Module):
         if obs.ndim == 1: obs = obs.unsqueeze(0)
         if act.ndim == 1: act = act.unsqueeze(0)
         x = torch.cat([obs, act], dim=-1)
-        return self.q(x).squeeze(-1)
+        return self.q(x)
 
 
 # ----------------------------- ActorCritic -----------------------------
