@@ -187,7 +187,8 @@ class PPOAgent:
             all_adv = all_batch["advantages"]
             all_batch["advantages"] = (all_adv - all_adv.mean()) / (all_adv.std() + 1e-8)
 
-            for _ in range(epochs):
+            for i in range(epochs):
+                print(i)
                 perm_curr = torch.randperm(B_curr, device=self.device)
                 perm_all  = torch.randperm(B_all,  device=self.device)
                 p1 = p2 = 0
