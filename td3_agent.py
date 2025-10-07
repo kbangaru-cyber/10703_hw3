@@ -219,7 +219,7 @@ class TD3Agent:
     
         self.critic_opt.zero_grad(set_to_none=True)
         critic_loss.backward()
-        self.critic_opt.step(
+        self.critic_opt.step()
         ### END STUDENT SOLUTION  -  2.1.2 ###
         
         # ---------------- Problem 2.1.3: Critic update ----------------
