@@ -73,15 +73,39 @@ class TD3Agent:
         self.total_steps = 0
         self._update_count = 0
     
-    def _dist_mean(self, out):
+    def _to_tensor_action(self, out):
+        if torch.is_tensor(out):
+            return out
+    
         if hasattr(out, "mean"):
             m = out.mean
-            return m() if callable(m) else m
-        if hasattr(out, "loc"):
-            return out.loc
-        if isinstance(out, (tuple, list)) and torch.is_tensor(out[0]):
-            return out[0]
-        return out
+            try:
+                m = m() if callable(m) else m
+            except TypeError:
+                pass
+            if torch.is_tensor(m):
+                return m
+    
+        for attr in ("loc", "mu"):
+            if hasattr(out, attr) and torch.is_tensor(getattr(out, attr)):
+                return getattr(out, attr)
+    
+        for holder in ("base", "base_dist", "_distribution", "dist"):
+            if hasattr(out, holder):
+                inner = getattr(out, holder)
+                for attr in ("mean", "loc", "mu"):
+                    if hasattr(inner, attr):
+                        v = getattr(inner, attr)
+                        v = v() if callable(v) else v
+                        if torch.is_tensor(v):
+                            return v
+    
+        if hasattr(out, "sample"):
+            s = out.sample()
+            if torch.is_tensor(s):
+                return s
+    
+        raise TypeError(f"Actor output type {type(out)} could not be converted to a Tensor.")
 
     
     def act(self, obs):
@@ -92,11 +116,11 @@ class TD3Agent:
             
             # ---------------- Problem 2.2: Exploration noise at action time ----------------
             ### BEGIN STUDENT SOLUTION - 2.2 ###
+            obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
             out = self.actor(obs_t)
-            mu = self._dist_mean(out)
+            mu = self._to_tensor_action(out)
             noise = torch.randn_like(mu) * self.exploration_noise
-            action = mu + noise
-            action = torch.clamp(action, self.act_low, self.act_high)
+            action = torch.clamp(mu + noise, self.act_low, self.act_high)
             ### END STUDENT SOLUTION  -  2.2 ###
             
             return {
@@ -185,7 +209,7 @@ class TD3Agent:
         ### BEGIN STUDENT SOLUTION - 2.1.2 ###
         with torch.no_grad():
             out_tgt = self.actor_tgt(next_obs)
-            next_act = self._dist_mean(out_tgt)
+            next_act = self._to_tensor_action(out_tgt)
             noise = (torch.randn_like(next_act) * self.policy_noise).clamp(-self.noise_clip, self.noise_clip)
             next_act = torch.clamp(next_act + noise, self.act_low, self.act_high)
             q1_tgt = self.critic1_tgt(next_obs, next_act)
@@ -209,15 +233,19 @@ class TD3Agent:
         ### BEGIN STUDENT SOLUTION - 2.1.4 ###
         if do_actor_update:
             out = self.actor(obs)
-            pi = self._dist_mean(out)
+            pi = self._to_tensor_action(out)
             actor_loss = -self.critic1(obs, pi).mean()
+        
+            self.actor_opt.zero_grad(set_to_none=True)   # <-- missing before
+            actor_loss.backward()
             self.actor_opt.step()
-
+        
             self._soft_update(self.actor,   self.actor_tgt)
             self._soft_update(self.critic1, self.critic1_tgt)
             self._soft_update(self.critic2, self.critic2_tgt)
         else:
             actor_loss = torch.tensor(0.0, device=self.device)
+
         ### END STUDENT SOLUTION  -  2.1.4 ###
         
         # Return stats in format expected by runner
