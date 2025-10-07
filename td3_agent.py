@@ -254,9 +254,9 @@ class TD3Agent:
         
         # Return stats in format expected by runner
         return {
-            "actor_loss": float(actor_loss.item()),
-            "critic1_loss": float(nn.functional.mse_loss(current_q1, target_q).item()),
-            "critic2_loss": float(nn.functional.mse_loss(current_q2, target_q).item()),
+            "actor_loss":  float(actor_loss.item()),
+            "critic1_loss": float(critic1_loss.item()),
+            "critic2_loss": float(critic2_loss.item()),
             "q1": float(current_q1.mean().item()),
             "q2": float(current_q2.mean().item()),
         }
