@@ -203,8 +203,6 @@ class TD3Agent:
         dones    = batch["dones"].unsqueeze(-1)
 
         assert obs.shape[0] == actions.shape[0] == rewards.shape[0] == next_obs.shape[0] == dones.shape[0]
-
-        print(obs.shape, actions.shape, rewards.shape, next_obs.shape, dones.shape)
     
         # ---- 2.1.2: target with policy smoothing (no optimizer step here) ----
         with torch.no_grad():
