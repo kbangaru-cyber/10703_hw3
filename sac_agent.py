@@ -72,7 +72,8 @@ class SACAgent:
         with torch.no_grad():
             obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
             dist = self.actor(obs_t)
-            action = dist.sample()
+            # action = dist.sample()
+            action = dist.mean_action
             
             # ---------------- Problem 3.5: Deterministic Action ----------------
             ### BEGIN STUDENT SOLUTION - 3.5 ###
