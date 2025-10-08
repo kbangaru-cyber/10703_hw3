@@ -153,9 +153,9 @@ class SACAgent:
         """Single SAC update step"""
         obs = batch["obs"]
         actions = batch["actions"]
-        rewards = batch["rewards"]
+        rewards = batch["rewards"].squeeze(-1)
         next_obs = batch["next_obs"]
-        dones = batch["dones"]
+        dones   = batch["dones"].squeeze(-1)
         
         # ---------------- Problem 3.1.2: Soft Bellman target ----------------
         ### BEGIN STUDENT SOLUTION - 3.1.2 ###
@@ -164,7 +164,8 @@ class SACAgent:
           next_action = next_dist.rsample()
           next_logp = next_dist.log_prob(next_action)
           if next_logp.dim() > 1:
-              next_logp = next_logp.sum(-1)
+             next_logp = next_logp.sum(-1)
+          next_logp = torch.clamp(next_logp, -20, 20)
 
           q1_tgt = self.critic1_tgt(next_obs, next_action)
           q2_tgt = self.critic2_tgt(next_obs, next_action)
@@ -189,6 +190,9 @@ class SACAgent:
 
         self.critic_opt.zero_grad(set_to_none=True)
         critic_loss.backward()
+        torch.nn.utils.clip_grad_norm_(
+            list(self.critic1.parameters())+list(self.critic2.parameters()), 1.0
+        )
         self.critic_opt.step()
         ### END STUDENT SOLUTION  -  3.1.3 ###
         
@@ -201,6 +205,7 @@ class SACAgent:
         logp = pi_dist.log_prob(pi_action)
         if logp.dim() > 1:
             logp = logp.sum(-1)
+        logp = torch.clamp(logp, -20, 20)
 
         q1_pi = self.critic1(obs, pi_action)
         q2_pi = self.critic2(obs, pi_action)
@@ -211,6 +216,7 @@ class SACAgent:
 
         self.actor_opt.zero_grad(set_to_none=True)
         actor_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 1.0)
         self.actor_opt.step()
 
         entropy = float((-logp).mean().item())
