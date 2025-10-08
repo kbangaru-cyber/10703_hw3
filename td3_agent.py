@@ -224,17 +224,24 @@ class TD3Agent:
         critic1_loss = nn.functional.mse_loss(current_q1, target_q)
         critic2_loss = nn.functional.mse_loss(current_q2, target_q)
         critic_loss  = critic1_loss + critic2_loss
+
         self.critic_opt.zero_grad(set_to_none=True)
         critic_loss.backward()
+        torch.nn.utils.clip_grad_norm_(
+            list(self.critic1.parameters()) + list(self.critic2.parameters()), 1.0
+        )
         self.critic_opt.step()
+
     
         # ---- 2.1.4: delayed actor update + Polyak ----
         if do_actor_update:
             out = self.actor(obs)
             pi  = self._to_tensor_action(out)
             actor_loss = -self.critic1(obs, pi).mean()
+
             self.actor_opt.zero_grad(set_to_none=True)
             actor_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 1.0)
             self.actor_opt.step()
     
             self._soft_update(self.actor,   self.actor_tgt)
