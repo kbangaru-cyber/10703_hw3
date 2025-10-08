@@ -186,13 +186,8 @@ class Critic(nn.Module):
     def forward(self, obs: torch.Tensor, act: torch.Tensor) -> torch.Tensor:
         if obs.ndim == 1: obs = obs.unsqueeze(0)
         if act.ndim == 1: act = act.unsqueeze(0)
-
-        device = next(self.parameters()).device
-        obs = obs.to(device, dtype=torch.float32)
-        act = act.to(device, dtype=torch.float32)
-        
         x = torch.cat([obs, act], dim=-1)
-        return self.q(x)
+        return self.q(x).squeeze(-1)
 
 
 # ----------------------------- ActorCritic -----------------------------
