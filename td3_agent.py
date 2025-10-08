@@ -202,6 +202,8 @@ class TD3Agent:
         next_obs = batch["next_obs"]
         dones    = batch["dones"].unsqueeze(-1)
 
+        print("updated")
+
         assert obs.shape[0] == actions.shape[0] == rewards.shape[0] == next_obs.shape[0] == dones.shape[0]
     
         # ---- 2.1.2: target with policy smoothing (no optimizer step here) ----
