@@ -157,12 +157,6 @@ class SACAgent:
         next_obs = batch["next_obs"]
         dones = batch["dones"]
         
-        entropy = 0.0 # placeholder
-        current_q1 = torch.zeros_like((actions.shape[0],)) # placeholder
-        current_q2 = torch.zeros_like((actions.shape[0],)) # placeholder
-        target_q = torch.zeros_like((actions.shape[0],)) # placeholder
-        actor_loss = torch.tensor(0.0) # placeholder
-        
         # ---------------- Problem 3.1.2: Soft Bellman target ----------------
         ### BEGIN STUDENT SOLUTION - 3.1.2 ###
         with torch.no_grad():
