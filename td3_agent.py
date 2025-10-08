@@ -16,7 +16,7 @@ class TD3Agent:
     
     def __init__(self, env_info, lr=3e-4, gamma=0.99, tau=0.005, 
                  batch_size=128, update_every=1, buffer_size=100000, 
-                 warmup_steps=5000, policy_noise=0.2, noise_clip=0.5, 
+                 warmup_steps=5000, policy_noise=0.15, noise_clip=0.4, 
                  exploration_noise=0.1, delay = 2, device="cpu"):
         self.device = torch.device(device)
         
@@ -56,11 +56,11 @@ class TD3Agent:
         self.actor_tgt.eval(); self.critic1_tgt.eval(); self.critic2_tgt.eval()        
         ### END STUDENT SOLUTION  -  2.1.1 ###
         
-        # Optimizers
-        self.actor_opt = optim.Adam(self.actor.parameters(), lr=lr)
-        self.critic_opt = optim.Adam(
-            list(self.critic1.parameters()) + list(self.critic2.parameters()), lr=lr
-        )
+        lr_actor  = 1e-4
+        lr_critic = 3e-4
+        self.actor_opt  = optim.Adam(self.actor.parameters(), lr=lr_actor)
+        self.critic_opt = optim.Adam(list(self.critic1.parameters())+list(self.critic2.parameters()), lr=lr_critic)
+
         
         self._buffer = Buffer(
             size=buffer_size,
@@ -119,7 +119,10 @@ class TD3Agent:
             obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
             out = self.actor(obs_t)
             mu = self._to_tensor_action(out)
-            noise = torch.randn_like(mu) * self.exploration_noise
+            eps0, eps1 = 0.15, 0.05
+            t = min(1.0, self.total_steps / 400_000.0)
+            curr_sigma = eps0*(1.0 - t) + eps1*t
+            noise = torch.randn_like(mu) * curr_sigma
             action = torch.clamp(mu + noise, self.act_low, self.act_high)
             ### END STUDENT SOLUTION  -  2.2 ###
             
