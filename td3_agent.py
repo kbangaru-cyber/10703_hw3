@@ -39,13 +39,13 @@ class TD3Agent:
         
         # ================== Problem 2.1.1: TD3 initialization ==================
         ### BEGIN STUDENT SOLUTION - 2.1.1 ###
-        self.actor    = Actor(self.obs_dim, self.act_dim, self.act_low, self.act_high).to(self.device)
-        self.critic1  = Critic(self.obs_dim, self.act_dim).to(self.device)
-        self.critic2  = Critic(self.obs_dim, self.act_dim).to(self.device)
+        self.actor    = Actor(self.obs_dim, self.act_dim, self.act_low, self.act_high, hidden=(64, 64)).to(self.device)
+        self.critic1  = Critic(self.obs_dim, self.act_dim, hidden=(64, 64)).to(self.device)
+        self.critic2  = Critic(self.obs_dim, self.act_dim, hidden=(64, 64)).to(self.device)
 
-        self.actor_tgt   = Actor(self.obs_dim, self.act_dim, self.act_low, self.act_high).to(self.device)
-        self.critic1_tgt = Critic(self.obs_dim, self.act_dim).to(self.device)
-        self.critic2_tgt = Critic(self.obs_dim, self.act_dim).to(self.device)
+        self.actor_tgt   = Actor(self.obs_dim, self.act_dim, self.act_low, self.act_high, hidden=(64, 64)).to(self.device)
+        self.critic1_tgt = Critic(self.obs_dim, self.act_dim, hidden=(64, 64)).to(self.device)
+        self.critic2_tgt = Critic(self.obs_dim, self.act_dim, hidden=(64, 64)).to(self.device)
 
         # Hard copy params
         self.actor_tgt.load_state_dict(self.actor.state_dict())
