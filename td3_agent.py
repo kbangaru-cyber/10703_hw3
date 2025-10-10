@@ -39,13 +39,13 @@ class TD3Agent:
         
         # ================== Problem 2.1.1: TD3 initialization ==================
         ### BEGIN STUDENT SOLUTION - 2.1.1 ###
-        self.actor    = Actor(self.obs_dim, self.act_dim, self.act_low, self.act_high, hidden=(64, 64)).to(self.device)
-        self.critic1  = Critic(self.obs_dim, self.act_dim, hidden=(64, 64)).to(self.device)
-        self.critic2  = Critic(self.obs_dim, self.act_dim, hidden=(64, 64)).to(self.device)
+        self.actor    = Actor(self.obs_dim, self.act_dim, self.act_low, self.act_high).to(self.device)
+        self.critic1  = Critic(self.obs_dim, self.act_dim).to(self.device)
+        self.critic2  = Critic(self.obs_dim, self.act_dim).to(self.device)
 
-        self.actor_tgt   = Actor(self.obs_dim, self.act_dim, self.act_low, self.act_high, hidden=(64, 64)).to(self.device)
-        self.critic1_tgt = Critic(self.obs_dim, self.act_dim, hidden=(64, 64)).to(self.device)
-        self.critic2_tgt = Critic(self.obs_dim, self.act_dim, hidden=(64, 64)).to(self.device)
+        self.actor_tgt   = Actor(self.obs_dim, self.act_dim, self.act_low, self.act_high).to(self.device)
+        self.critic1_tgt = Critic(self.obs_dim, self.act_dim).to(self.device)
+        self.critic2_tgt = Critic(self.obs_dim, self.act_dim).to(self.device)
 
         # Hard copy params
         self.actor_tgt.load_state_dict(self.actor.state_dict())
@@ -117,7 +117,7 @@ class TD3Agent:
             # ---------------- Problem 2.2: Exploration noise at action time ----------------
             ### BEGIN STUDENT SOLUTION - 2.2 ###
             out = self.actor(obs_t)
-            mu = self._to_tensor_action(out)
+            mu = out.mean_action
             noise = torch.randn_like(mu) * self.exploration_noise
             action = torch.clamp(mu + noise, self.act_low, self.act_high)
             ### END STUDENT SOLUTION  -  2.2 ###
@@ -206,7 +206,7 @@ class TD3Agent:
         # ---- 2.1.2: target with policy smoothing (no optimizer step here) ----
         with torch.no_grad():
             out_tgt  = self.actor_tgt(next_obs)
-            next_act = self._to_tensor_action(out_tgt)
+            next_act = out_tgt.mean_action
             noise    = (torch.randn_like(next_act) * self.policy_noise).clamp(-self.noise_clip, self.noise_clip)
             next_act = torch.clamp(next_act + noise, self.act_low, self.act_high)
     
@@ -238,7 +238,7 @@ class TD3Agent:
         # ---- 2.1.4: delayed actor update + Polyak ----
         if do_actor_update:
             out = self.actor(obs)
-            pi  = self._to_tensor_action(out)
+            pi  = out.mean_action
             actor_loss = -self.critic1(obs, pi).mean()
 
             self.actor_opt.zero_grad(set_to_none=True)
