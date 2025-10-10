@@ -53,7 +53,7 @@ class TD3Agent:
         self.critic2_tgt.load_state_dict(self.critic2.state_dict())
 
         self.actor.train(); self.critic1.train(); self.critic2.train()
-        self.actor_tgt.eval(); self.critic1_tgt.eval(); self.critic2_tgt.eval()        
+        self.actor_tgt.eval(); self.critic1_tgt.eval(); self.critic2_tgt.eval()
         ### END STUDENT SOLUTION  -  2.1.1 ###
         
         lr_actor  = 1e-4
@@ -116,13 +116,9 @@ class TD3Agent:
             
             # ---------------- Problem 2.2: Exploration noise at action time ----------------
             ### BEGIN STUDENT SOLUTION - 2.2 ###
-            obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
             out = self.actor(obs_t)
             mu = self._to_tensor_action(out)
-            eps0, eps1 = 0.15, 0.05
-            t = min(1.0, self.total_steps / 400_000.0)
-            curr_sigma = eps0*(1.0 - t) + eps1*t
-            noise = torch.randn_like(mu) * curr_sigma
+            noise = torch.randn_like(mu) * self.exploration_noise
             action = torch.clamp(mu + noise, self.act_low, self.act_high)
             ### END STUDENT SOLUTION  -  2.2 ###
             
@@ -158,6 +154,9 @@ class TD3Agent:
         # ---------------- Problem 2.4: Exploration noise at action time ----------------
         ### BEGIN STUDENT SOLUTION - 2.4 ###
         if self.total_steps < self.warmup_steps:
+            return {}
+
+        if self.batch_size > self._buffer.size:
             return {}
 
         if self.total_steps % self.update_every != 0:
