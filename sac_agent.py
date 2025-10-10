@@ -122,6 +122,9 @@ class SACAgent:
         if self.total_steps < self.warmup_steps:
             return {}
 
+        if self.batch_size > self._buffer.size:
+            return {}
+
         if self.total_steps % self.update_every != 0:
             return {}
         ### END STUDENT SOLUTION  -  3.2 ###
