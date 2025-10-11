@@ -273,7 +273,7 @@ class PPOAgent:
                     next_nonterminal = 0.0
                     next_value = 0.0
             else:
-                next_nonterminal = 0.0 if dones[t+1] else 1.0
+                next_nonterminal = 0.0 if dones[t] else 1.0
                 next_value = values[t+1]
 
             delta = rewards[t] + gamma * next_value * next_nonterminal - values[t]
